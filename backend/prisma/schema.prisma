@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum LeadSource {
+  INSTAGRAM
+  FACEBOOK
+  TIKTOK
+  REFERRAL
+  PORTAL
+  OTHER
+}
+
+enum ClientStatus {
+  NEW
+  ACTIVE
+  NOT_INTERESTED
+  CONVERTED
+  LOST
+}
+
+enum PropertyStatus {
+  ACTIVE
+  UNDER_OFFER
+  RENTED
+  SOLD
+  ARCHIVED
+}
+
+enum Currency {
+  ILS
+  USD
+}
+
+enum DealStage {
+  NEW_LEAD
+  NEGOTIATION
+  VIEWING
+  CONTRACT
+  CLOSED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  MEETING
+  EMAIL
+  STAGE_CHANGE
+  TASK_CREATED
+  DEAL_CREATED
+  STATUS_CHANGE
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(AGENT)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  assignedClients    Client[]    @relation("AgentClients")
+  assignedDeals      Deal[]      @relation("AgentDeals")
+  assignedTasks      Task[]      @relation("AgentTasks")
+  activities         Activity[]
+
+  @@map("users")
+}
+
+model Client {
+  id         String       @id @default(uuid())
+  fullName   String       @map("full_name")
+  phone      String
+  email      String?
+  leadSource LeadSource?  @map("lead_source")
+  status     ClientStatus @default(NEW)
+  assignedTo String?      @map("assigned_to")
+  tags       String[]     @default([])
+  notes      String?
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  agent      User?        @relation("AgentClients", fields: [assignedTo], references: [id])
+  deals      Deal[]
+  tasks      Task[]       @relation("ClientTasks")
+  activities Activity[]
+  ownedProperties Property[] @relation("PropertyOwner")
+
+  @@map("clients")
+}
+
+model Property {
+  id            String         @id @default(uuid())
+  title         String
+  address       String
+  price         Decimal        @db.Decimal(15, 2)
+  currency      Currency       @default(ILS)
+  description   String?
+  status        PropertyStatus @default(ACTIVE)
+  rooms         Int?
+  sizeSqm       Int?           @map("size_sqm")
+  floor         Int?
+  ownerClientId String?        @map("owner_client_id")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  owner  Client?         @relation("PropertyOwner", fields: [ownerClientId], references: [id], onDelete: SetNull)
+  photos PropertyPhoto[]
+  deals  Deal[]
+  tasks  Task[]          @relation("PropertyTasks")
+
+  @@map("properties")
+}
+
+model PropertyPhoto {
+  id         String   @id @default(uuid())
+  propertyId String   @map("property_id")
+  url        String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_photos")
+}
+
+model Deal {
+  id           String    @id @default(uuid())
+  clientId     String    @map("client_id")
+  propertyId   String?   @map("property_id")
+  stage        DealStage @default(NEW_LEAD)
+  value        Decimal?  @db.Decimal(15, 2)
+  probability  Int?
+  assignedTo   String?   @map("assigned_to")
+  nextActionAt DateTime? @map("next_action_at")
+  lostReason   String?   @map("lost_reason")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  client     Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  property   Property?  @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  agent      User?      @relation("AgentDeals", fields: [assignedTo], references: [id], onDelete: SetNull)
+  tasks      Task[]     @relation("DealTasks")
+  activities Activity[]
+
+  @@map("deals")
+}
+
+model Task {
+  id                String       @id @default(uuid())
+  title             String
+  description       String?
+  dueAt             DateTime     @map("due_at")
+  priority          TaskPriority @default(MEDIUM)
+  status            TaskStatus   @default(TODO)
+  assignedTo        String?      @map("assigned_to")
+  relatedClientId   String?      @map("related_client_id")
+  relatedDealId     String?      @map("related_deal_id")
+  relatedPropertyId String?      @map("related_property_id")
+  reminderAt        DateTime?    @map("reminder_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  agent    User?     @relation("AgentTasks", fields: [assignedTo], references: [id], onDelete: SetNull)
+  client   Client?   @relation("ClientTasks", fields: [relatedClientId], references: [id], onDelete: SetNull)
+  deal     Deal?     @relation("DealTasks", fields: [relatedDealId], references: [id], onDelete: SetNull)
+  property Property? @relation("PropertyTasks", fields: [relatedPropertyId], references: [id], onDelete: SetNull)
+
+  @@map("tasks")
+}
+
+model Activity {
+  id        String       @id @default(uuid())
+  type      ActivityType
+  content   String
+  userId    String?      @map("user_id")
+  clientId  String?      @map("client_id")
+  dealId    String?      @map("deal_id")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@map("activities")
+}
