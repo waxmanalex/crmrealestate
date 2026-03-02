@@ -6,6 +6,12 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...');
 
+  const existingAdmin = await prisma.user.findUnique({ where: { email: 'admin@recrm.com' } });
+  if (existingAdmin) {
+    console.log('Database already seeded, skipping...');
+    return;
+  }
+
   // Create users
   const adminPassword = await bcrypt.hash('admin123', 10);
   const agentPassword = await bcrypt.hash('agent123', 10);
