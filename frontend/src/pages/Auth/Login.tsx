@@ -136,24 +136,6 @@ export const Login: React.FC = () => {
             </Button>
           </Box>
 
-          <Box
-            sx={{
-              mt: 3,
-              p: 2,
-              bgcolor: 'action.hover',
-              borderRadius: 2,
-            }}
-          >
-            <Typography variant="caption" color="text.secondary" display="block" fontWeight={600} gutterBottom>
-              Demo Credentials:
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block">
-              Admin: admin@recrm.com / admin123
-            </Typography>
-            <Typography variant="caption" color="text.secondary" display="block">
-              Agent: sarah@recrm.com / agent123
-            </Typography>
-          </Box>
         </CardContent>
       </Card>
     </Box>
