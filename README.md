@@ -20,17 +20,24 @@ A full-featured real estate CRM built with React + Node.js + PostgreSQL.
 
 ## Quick Start
 
-### Option 1: Docker Compose (Recommended)
+### Option 1: Docker Compose (Recommended for VPS)
 
 ```bash
+# 1. Clone and configure
+git clone https://github.com/waxmanalex/crmrealestate.git
+cd crmrealestate
 cp backend/.env.example backend/.env
-docker-compose up -d
-```
+# Edit backend/.env — set JWT_SECRET, JWT_REFRESH_SECRET, FRONTEND_URL
 
-Then seed the database:
-```bash
+# 2. Build and start all services
+docker-compose up -d --build
+
+# 3. Apply migrations and seed demo data (first time only)
+docker-compose exec backend npx prisma migrate deploy
 docker-compose exec backend npm run prisma:seed
 ```
+
+App will be available at **http://your-server-ip:3000**
 
 ### Option 2: Local Development
 

@@ -13,16 +13,24 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U recrm -d recrm_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
     container_name: recrm_backend
     restart: unless-stopped
     env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://recrm:recrm_pass@postgres:5432/recrm_db
     ports:
       - '4000:4000'
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - ./backend/uploads:/app/uploads
 
